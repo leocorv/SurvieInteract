@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "survieinteract",
+  "version": "${version}",
+  "name": "survieinteract",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/survieinteract/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "org.nerix.survieinteract.client.SurvieinteractClient"
+    ],
+    "main": [
+      "org.nerix.survieinteract.Survieinteract"
+    ]
+  },
+  "mixins": [
+    "survieinteract.mixins.json",
+    {
+      "config": "survieinteract.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

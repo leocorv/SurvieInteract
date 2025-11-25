@@ -1,0 +1,59 @@
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+.gradletasknamecache
+**/build/
+
+# Java classes
+*.class
+*.log
+*.tmp
+
+# Fabric run dirs
+run/
+runs/
+
+# OS garbage
+.DS_Store
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+$RECYCLE.BIN/
+*.lnk
+Directory
+.DS_Store
+
+# macOS junk
+.AppleDouble
+.LSOverride
+._*
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+
+# Windows junk
+[Dd]esktop.ini
+
+# Archives
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# EXCEPT: we KEEP the gradle wrapper properties file but NOT the jar
+gradle/wrapper/gradle-wrapper.properties
+!gradle/wrapper/gradle-wrapper.properties
