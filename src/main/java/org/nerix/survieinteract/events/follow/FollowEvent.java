@@ -7,6 +7,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 import org.nerix.survieinteract.ConfigManager;
 import org.nerix.survieinteract.Survieinteract;
@@ -20,12 +21,14 @@ public class FollowEvent implements EventHandler {
 
     @Override
     public void handle(JsonObject json) {
+        String viewer = json.get("value").getAsString();
+        String event_name = json.get("event_name").getAsString();
 
         Survieinteract.getServer().execute(() -> {
             ServerPlayerEntity target = pickTarget();
 
-            if (target != null) {
-                spawnTNT(target);
+            if (target != null && target.getGameMode() != GameMode.SPECTATOR) {
+                spawnTNT(target, viewer);
             }
         });
     }
@@ -48,7 +51,7 @@ public class FollowEvent implements EventHandler {
         return candidates.get(new Random().nextInt(candidates.size()));
     }
 
-    private void spawnTNT(ServerPlayerEntity p) {
+    private void spawnTNT(ServerPlayerEntity p, String viewerName) {
 
         ServerWorld world = p.getEntityWorld();
 
@@ -64,6 +67,12 @@ public class FollowEvent implements EventHandler {
         );
 
 
-        p.sendMessage(Text.literal("[SurvieInteract] FOLLOW → TNT surprise."), false);
+        p.sendMessage(Text.literal("[SurvieInteract] TNT surprise ! :)"), false);
+
+        // Message global au serveur
+        world.getServer().getPlayerManager().broadcast(
+                Text.literal("[SurvieInteract] " + viewerName + " a follow → TNT sur " + p.getName().getString()),
+                false
+        );
     }
 }

@@ -56,7 +56,7 @@ public class Survieinteract implements ModInitializer {
             int lives = ConfigManager.getLives(player.getUuid());
 
             // Message d'accueil
-            player.sendMessage(Text.literal("[SurvieInteract] Utilise /consent [on/off] pour activer les interactions Twitch."), false);
+            player.sendMessage(Text.literal("[SurvieInteract] Tu peux utiliser à tous moment la commande \n\n /consent [on/off] \n\n Elle permet d'activer / désactiver les évenements d'interactions Twitch (pour toi)."), false);
 
             // Gestion du mode spectateur
             if (lives <= 0) {
