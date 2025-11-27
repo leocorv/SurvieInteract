@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,6 +26,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class Survieinteract implements ModInitializer {
 
@@ -33,6 +37,26 @@ public class Survieinteract implements ModInitializer {
 
     public static MinecraftServer getServer() {
         return serverInstance;
+    }
+
+    /* ==== SCHEDULER TICK-BASED ==== */
+
+    private static final List<ScheduledTask> TASKS = new ArrayList<>();
+
+    private static class ScheduledTask {
+        int ticksRemaining;
+        Runnable task;
+
+        ScheduledTask(int ticksRemaining, Runnable task) {
+            this.ticksRemaining = ticksRemaining;
+            this.task = task;
+        }
+    }
+
+    public static void scheduleInTicks(int ticks, Runnable task) {
+        synchronized (TASKS) {
+            TASKS.add(new ScheduledTask(ticks, task));
+        }
     }
 
     @Override
@@ -47,6 +71,21 @@ public class Survieinteract implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
             ConsentCommand.register(dispatcher);
             DesactivateTypeCommand.register(dispatcher);
+        });
+
+        // tick scheduler
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            synchronized (TASKS) {
+                Iterator<ScheduledTask> it = TASKS.iterator();
+                while (it.hasNext()) {
+                    ScheduledTask t = it.next();
+                    t.ticksRemaining--;
+                    if (t.ticksRemaining <= 0) {
+                        server.execute(t.task);
+                        it.remove();
+                    }
+                }
+            }
         });
 
         // message / gestion vie à la connexion
