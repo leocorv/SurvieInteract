@@ -11,6 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 import org.nerix.survieinteract.commands.ConsentCommand;
+import org.nerix.survieinteract.commands.DesactivateTypeCommand;
 import org.nerix.survieinteract.events.EventRouter;
 import org.nerix.survieinteract.events.bits.BitsEvent;
 import org.nerix.survieinteract.events.follow.FollowEvent;
@@ -45,6 +46,7 @@ public class Survieinteract implements ModInitializer {
         // commandes
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
             ConsentCommand.register(dispatcher);
+            DesactivateTypeCommand.register(dispatcher);
         });
 
         // message / gestion vie à la connexion

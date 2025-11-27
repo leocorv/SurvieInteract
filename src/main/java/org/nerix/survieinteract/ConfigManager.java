@@ -53,6 +53,15 @@ public class ConfigManager {
         root = new JsonObject();
         root.addProperty("default_lives", 3);
         root.add("players", new JsonObject());
+
+        JsonObject events = new JsonObject();
+        events.addProperty("follow", true);
+        events.addProperty("sub", true);
+        events.addProperty("bits", true);
+        events.addProperty("raid", true);
+        events.addProperty("points", true);
+
+        root.add("events_enabled", events);
     }
 
     private static JsonObject getPlayerNode(UUID uuid) {
@@ -68,6 +77,20 @@ public class ConfigManager {
         }
 
         return players.getAsJsonObject(key);
+    }
+
+    // ---------- Type Event ----------
+
+    public static boolean isEventEnabled(String type) {
+        JsonObject events = root.getAsJsonObject("events_enabled");
+        if (!events.has(type)) return true; // fallback = enabled
+        return events.get(type).getAsBoolean();
+    }
+
+    public static void setEventEnabled(String type, boolean enabled) {
+        JsonObject events = root.getAsJsonObject("events_enabled");
+        events.addProperty(type, enabled);
+        save();
     }
 
     // ---------- consent ----------
