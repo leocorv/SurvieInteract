@@ -2,6 +2,7 @@ package org.nerix.survieinteract.client.effects;
 
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
 
@@ -22,24 +23,32 @@ public class BitsEffectRenderer {
             int w = client.getWindow().getScaledWidth();
             int h = client.getWindow().getScaledHeight();
 
-            float radius = BitsEffectManager.getRadius();
+            float fade = BitsEffectManager.getFadeFactor();
+            float radius = BitsEffectManager.getRadius() * fade;
+            radius = Math.max(0f, Math.min(1f, radius));
+
+            int alpha = (int) (fade * 255);
+            int color = (alpha << 24) | 0xFFFFFF;
+
             float scale = 0.20f + (radius * 0.80f);
 
             int drawW = (int) (w / scale);
             int drawH = (int) (h / scale);
 
-            // drawTexture de 1.21.9 directement
+            int x = (w - drawW) / 2;
+            int y = (h - drawH) / 2;
+
             drawContext.drawTexture(
+                    RenderPipelines.GUI_TEXTURED,
                     MASK,
-                    (w - drawW) / 2,
-                    (h - drawH) / 2,
-                    0f,
-                    0f,
-                    drawW,
-                    drawH,
-                    drawW,
-                    drawH
+                    x, y,
+                    0f, 0f,
+                    drawW, drawH,
+                    drawW, drawH,
+                    drawW, drawH,
+                    color
             );
+
         });
     }
 }
