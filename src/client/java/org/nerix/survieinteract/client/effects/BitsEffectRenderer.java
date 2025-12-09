@@ -30,7 +30,7 @@ public class BitsEffectRenderer {
             int alpha = (int) (fade * 255);
             int color = (alpha << 24) | 0xFFFFFF;
 
-            float scale = 0.20f + (radius * 0.80f);
+            float scale = 1f - (radius * 0.90f);
 
             int drawW = (int) (w / scale);
             int drawH = (int) (h / scale);

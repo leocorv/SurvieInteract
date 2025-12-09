@@ -10,6 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 import org.nerix.survieinteract.ConfigManager;
+import org.nerix.survieinteract.Msg;
 import org.nerix.survieinteract.Survieinteract;
 import org.nerix.survieinteract.events.EventHandler;
 
@@ -21,6 +22,8 @@ public class FollowEvent implements EventHandler {
 
     @Override
     public void handle(JsonObject json) {
+        System.out.println("[SurvieInteract] Follow event reçu: " + json);
+
         String viewer = json.get("value").getAsString();
         String event_name = json.get("event_name").getAsString();
 
@@ -66,13 +69,8 @@ public class FollowEvent implements EventHandler {
                 false
         );
 
+        Msg.player(p,viewerName + " -> " + "TNT surprise ! :)");
 
-        p.sendMessage(Text.literal("[SurvieInteract] TNT surprise ! :)"), false);
-
-        // Message global au serveur
-        world.getServer().getPlayerManager().broadcast(
-                Text.literal("[SurvieInteract] " + viewerName + " a follow → TNT sur " + p.getName().getString()),
-                false
-        );
+        Msg.global(world.getServer(),viewerName + " a follow → TNT sur " + p.getName().getString(), p);
     }
 }

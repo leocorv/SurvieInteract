@@ -38,17 +38,19 @@ public class BitsEffectManager {
 
         float progress = 1f - (ticksLeft / (float) totalTicks);
 
-        // Fade-in : 0 → 0.2
-        if (progress < 0.2f) {
-            return progress / 0.2f;
+        float fadeSpan = 0.05f; // fade sur 5% du temps
+
+        // Fade-in
+        if (progress < fadeSpan) {
+            return progress / fadeSpan;
         }
 
-        // Fade-out : 0.8 → 1.0
-        if (progress > 0.8f) {
-            return (1f - progress) / 0.2f;
+        // Fade-out
+        if (progress > 1f - fadeSpan) {
+            return (1f - progress) / fadeSpan;
         }
 
-        // Pleine intensité
         return 1f;
     }
+
 }

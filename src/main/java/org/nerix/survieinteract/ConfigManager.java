@@ -68,15 +68,25 @@ public class ConfigManager {
         JsonObject players = root.getAsJsonObject("players");
         String key = uuid.toString();
 
+        if (players.has(key)) {
+            return players.getAsJsonObject(key);
+        }
+
+        // IMPORTANT : ne crée rien automatiquement ici
+        return null;
+    }
+
+    public static void ensurePlayerExists(UUID uuid) {
+        JsonObject players = root.getAsJsonObject("players");
+        String key = uuid.toString();
+
         if (!players.has(key)) {
             JsonObject p = new JsonObject();
-            p.addProperty("consent", false);
+            p.addProperty("consent", false); // OFF first time
             p.addProperty("lives", root.get("default_lives").getAsInt());
             players.add(key, p);
             save();
         }
-
-        return players.getAsJsonObject(key);
     }
 
     // ---------- Type Event ----------

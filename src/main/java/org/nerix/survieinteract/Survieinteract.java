@@ -6,10 +6,12 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import org.nerix.survieinteract.commands.ConsentCommand;
 import org.nerix.survieinteract.commands.DesactivateTypeCommand;
@@ -21,6 +23,7 @@ import org.nerix.survieinteract.events.raid.RaidEvent;
 import org.nerix.survieinteract.events.sub.SubEvent;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import org.nerix.survieinteract.network.BitsEffectPacket;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -63,7 +66,6 @@ public class Survieinteract implements ModInitializer {
     public void onInitialize() {
 
         System.out.println("[SurvieInteract] Init…");
-
         // config
         ConfigManager.init();
 
@@ -92,18 +94,23 @@ public class Survieinteract implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var player = handler.player;
 
-            int lives = ConfigManager.getLives(player.getUuid());
+            ConfigManager.ensurePlayerExists(player.getUuid());
 
-            // Message d'accueil
-            player.sendMessage(Text.literal("[SurvieInteract] Tu peux utiliser à tous moment la commande \n\n /consent [on/off] \n\n Elle permet d'activer / désactiver les évenements d'interactions Twitch (pour toi)."), false);
+            int lives = ConfigManager.getLives(player.getUuid());
 
             // Gestion du mode spectateur
             if (lives <= 0) {
                 player.changeGameMode(GameMode.SPECTATOR);
                 player.sendMessage(Text.literal("Tu es à 0 vie. Tu restes en spectateur permanent."), false);
             } else {
+                // Message d'accueil
+                Msg.player(player, "Tu peux utiliser à tous moment la commande \n\n /consent [on/off] \n\n Elle permet d'activer / désactiver les évenements d'interactions Twitch (pour toi).");
                 player.changeGameMode(GameMode.SURVIVAL);
-                player.sendMessage(Text.literal("Vies restantes : " + lives), false);
+                player.sendMessage(
+                        Text.literal("Vies restantes : ")
+                                .append(Text.literal(String.valueOf(lives)).formatted(Formatting.RED)),
+                        false
+                );
             }
         });
 
@@ -135,6 +142,9 @@ public class Survieinteract implements ModInitializer {
         // serveur prêt → lancer listener broker
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             serverInstance = server;
+
+            PayloadTypeRegistry.playS2C().register(BitsEffectPacket.ID, BitsEffectPacket.CODEC);
+
             startBrokerListener();
         });
     }

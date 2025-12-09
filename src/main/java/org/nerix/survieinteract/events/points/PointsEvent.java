@@ -7,6 +7,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import org.nerix.survieinteract.ConfigManager;
+import org.nerix.survieinteract.Msg;
 import org.nerix.survieinteract.Survieinteract;
 import org.nerix.survieinteract.events.EventHandler;
 
@@ -18,6 +19,7 @@ public class PointsEvent implements EventHandler {
 
     @Override
     public void handle(JsonObject json) {
+        System.out.println("[SurvieInteract] Points event reçu: " + json);
 
         JsonObject value = json.getAsJsonObject("value");
         if (value == null) return;
@@ -65,22 +67,15 @@ public class PointsEvent implements EventHandler {
 
         Random rand = new Random();
 
-        //Le message est envoyé entre 3 à 10 secondes après le drop
-        int nbr_tick = 20 * rand.nextInt(3,11);
+        //Le message est envoyé entre 4 à 10 secondes après le drop
+        int nbr_tick = 20 * rand.nextInt(4,11);
 
         Survieinteract.scheduleInTicks(nbr_tick, () -> {
                 // message joueur
-                target.sendMessage(
-                        Text.literal("[SurvieInteract] " + viewer + " t’a forcé à drop un slot ! (Il y a 3 à 10 secondes)"),
-                        false
-                );
+                Msg.player(target, viewer + " t’a forcé à drop un slot ! (Il y a 4 à 10 secondes)");
 
                 // message global
-                server.getPlayerManager().broadcast(
-                        Text.literal("[SurvieInteract] " + viewer +
-                                " a fait drop un slot de " + name),
-                        false
-                );
+                Msg.global(server, viewer + " a fait drop un slot de " + name, target);
             }
         );
     }
