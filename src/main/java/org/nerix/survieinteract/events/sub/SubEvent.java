@@ -21,6 +21,8 @@ import net.minecraft.world.Heightmap;
 import org.nerix.survieinteract.ConfigManager;
 import org.nerix.survieinteract.Msg;
 import org.nerix.survieinteract.Survieinteract;
+import org.nerix.survieinteract.entity.ModEntities;
+import org.nerix.survieinteract.entity.SubStalkerEntity;
 import org.nerix.survieinteract.events.EventHandler;
 
 import java.util.ArrayList;
@@ -62,12 +64,79 @@ public class SubEvent implements EventHandler {
 
         switch (eventName) {
             case "gift" -> handleGift(value);
-            case "new_sub", "resub" -> {
-                // On fera ça plus tard
-                System.out.println("[SurvieInteract] new_sub / resub non encore implémenté.");
-            }
+            case "new_sub", "resub" -> handleSubOrResub(eventName, value);
             default -> System.out.println("[SurvieInteract] Type de sub inconnu: " + eventName);
         }
+    }
+
+    // =========== SUB / RESUB → STALKER ===========
+
+    private void handleSubOrResub(String kind, JsonObject value) {
+        String viewer = value.get("user").getAsString();
+        String tier = value.has("tier") ? value.get("tier").getAsString() : "?";
+
+        int months = 0;
+        if (kind.equals("resub") && value.has("months")) {
+            months = value.get("months").getAsInt();
+        }
+
+        final int mois = months;
+
+        MinecraftServer server = Survieinteract.getServer();
+        if (server == null) return;
+
+        server.execute(() -> {
+            ServerPlayerEntity target = pickTarget(server);
+            if (target == null) {
+                System.out.println("[SurvieInteract] sub/resub ignoré : aucun joueur consentant / vivant.");
+                return;
+            }
+
+            ServerWorld world = target.getEntityWorld();
+            BlockPos basePos = target.getBlockPos().add(2, 0, 0); // à côté
+
+            SubStalkerEntity stalker = ModEntities.SUB_STALKER.create(world, SpawnReason.TRIGGERED);
+            if (stalker == null) {
+                System.out.println("[SurvieInteract] Impossible de créer SubStalkerEntity.");
+                return;
+            }
+
+            stalker.refreshPositionAndAngles(
+                    basePos.getX() + 0.5,
+                    basePos.getY(),
+                    basePos.getZ() + 0.5,
+                    world.random.nextFloat() * 360.0f,
+                    0.0f
+            );
+
+            stalker.setOwner(target);
+
+            world.spawnEntity(stalker);
+
+            String msgGlobal;
+            if (kind.equals("new_sub")) {
+                msgGlobal = viewer + " vient de sub (tier " + tier + ") → un clone sombre est apparu.";
+            } else {
+                msgGlobal = viewer + " s'est resub (" + mois + " mois, tier " + tier + ") → un clone sombre te traque.";
+            }
+
+            Msg.global(server, msgGlobal);
+            Msg.player(target, "Un double tordu portant ton visage rôde dans les environs…");
+        });
+    }
+
+    private ServerPlayerEntity pickTarget(MinecraftServer server) {
+        List<ServerPlayerEntity> candidates = new ArrayList<>();
+        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            if (!ConfigManager.getConsent(p.getUuid())) continue;
+            if (ConfigManager.isDead(p.getUuid())) continue;
+            if (p.getGameMode() == GameMode.SPECTATOR) continue;
+            candidates.add(p);
+        }
+        if (candidates.isEmpty()) return null;
+
+        Collections.shuffle(candidates, new Random());
+        return candidates.getFirst();
     }
 
     // ============================
