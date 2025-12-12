@@ -73,7 +73,13 @@ public class SubEvent implements EventHandler {
 
     private void handleSubOrResub(String kind, JsonObject value) {
         String viewer = value.get("user").getAsString();
-        String tier = value.has("tier") ? value.get("tier").getAsString() : "?";
+        int tier = value.has("tier") ? value.get("tier").getAsInt() : 0;
+
+        tier = tier / 1000;
+
+        if (tier < 1){
+            tier = 1;
+        }
 
         int months = 0;
         if (kind.equals("resub") && value.has("months")) {

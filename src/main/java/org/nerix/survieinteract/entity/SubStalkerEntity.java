@@ -9,6 +9,7 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -55,6 +56,8 @@ public class SubStalkerEntity extends HostileEntity {
     public void setOwner(ServerPlayerEntity player) {
         this.dataTracker.set(OWNER_UUID, player.getUuidAsString());
         this.dataTracker.set(OWNER_NAME, player.getGameProfile().name());
+        this.setCustomName(player.getDisplayName());
+        this.setCustomNameVisible(true);
     }
 
     public Optional<UUID> getOwnerUuid() {
@@ -76,7 +79,11 @@ public class SubStalkerEntity extends HostileEntity {
     @Override
     protected void initGoals() {
         super.initGoals();
-        // On laisse les goals vanilla, on gère juste la target dans tickMovement
+        this.goalSelector.add(0, new net.minecraft.entity.ai.goal.SwimGoal(this));
+        this.goalSelector.add(1, new net.minecraft.entity.ai.goal.MeleeAttackGoal(this, 1, true));
+        this.goalSelector.add(5, new net.minecraft.entity.ai.goal.WanderAroundGoal(this, 1.0));
+        this.goalSelector.add(6, new net.minecraft.entity.ai.goal.LookAtEntityGoal(this, PlayerEntity.class, 8.0f));
+        this.goalSelector.add(7, new net.minecraft.entity.ai.goal.LookAroundGoal(this));
     }
 
     @Override
