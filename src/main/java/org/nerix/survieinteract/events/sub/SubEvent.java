@@ -91,6 +91,7 @@ public class SubEvent implements EventHandler {
         MinecraftServer server = Survieinteract.getServer();
         if (server == null) return;
 
+        int finalTier = tier;
         server.execute(() -> {
             ServerPlayerEntity target = pickTarget(server);
             if (target == null) {
@@ -121,9 +122,9 @@ public class SubEvent implements EventHandler {
 
             String msgGlobal;
             if (kind.equals("new_sub")) {
-                msgGlobal = viewer + " vient de sub (tier " + tier + ") → un clone sombre est apparu.";
+                msgGlobal = viewer + " vient de sub (tier " + finalTier + ") → un clone sombre est apparu.";
             } else {
-                msgGlobal = viewer + " s'est resub (" + mois + " mois, tier " + tier + ") → un clone sombre te traque.";
+                msgGlobal = viewer + " s'est resub (" + mois + " mois, tier " + finalTier + ") → un clone sombre te traque.";
             }
 
             Msg.global(server, msgGlobal);
