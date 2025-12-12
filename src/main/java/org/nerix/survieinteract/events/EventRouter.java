@@ -17,7 +17,8 @@ public class EventRouter {
     public static void dispatch(JsonObject json) {
         String type = json.get("event_type").getAsString().toLowerCase();
 
-        if(json.get("is_gift").getAsBoolean()){
+        boolean isGift = json.has("is_gift") && json.get("is_gift").getAsBoolean();
+        if (isGift) {
             return;
         }
 
