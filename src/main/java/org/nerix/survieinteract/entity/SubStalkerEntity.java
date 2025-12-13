@@ -1,7 +1,9 @@
 package org.nerix.survieinteract.entity;
 
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.goal.BowAttackGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -11,8 +13,11 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.*;
+import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
 import org.nerix.survieinteract.ConfigManager;
@@ -164,5 +169,69 @@ public class SubStalkerEntity extends HostileEntity {
     @Override
     public boolean isPersistent() {
         return true;
+    }
+
+    //Fonctionnement de copie des armes du targets
+    public void copyLoadoutFrom(ServerPlayerEntity player) {
+        // Armure
+        copySlot(player, EquipmentSlot.HEAD);
+        copySlot(player, EquipmentSlot.CHEST);
+        copySlot(player, EquipmentSlot.LEGS);
+        copySlot(player, EquipmentSlot.FEET);
+
+        // Mains exactes (pile pareil)
+        this.setStackInHand(net.minecraft.util.Hand.MAIN_HAND, player.getMainHandStack().copy());
+        this.setStackInHand(net.minecraft.util.Hand.OFF_HAND,  player.getOffHandStack().copy());
+
+        this.setEquipmentDropChance(EquipmentSlot.MAINHAND, 0.0f);
+        this.setEquipmentDropChance(EquipmentSlot.OFFHAND, 0.0f);
+
+        // Arme (épée > hache > arc)
+        ItemStack weapon = findBestWeapon(player);
+        if (!weapon.isEmpty()) {
+            this.setStackInHand(Hand.MAIN_HAND, weapon.copy());
+            this.setEquipmentDropChance(EquipmentSlot.MAINHAND, 0.0f);
+        }
+
+    }
+
+    private void copySlot(ServerPlayerEntity player, EquipmentSlot slot) {
+        ItemStack stack = player.getEquippedStack(slot);
+        this.equipStack(slot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
+        this.setEquipmentDropChance(slot, 0.0f);
+    }
+
+    private ItemStack findBestWeapon(ServerPlayerEntity player) {
+        // 0) si le joueur tient déjà une arme, on la copie (ça colle à “pile pareil”)
+        ItemStack inHand = player.getMainHandStack();
+        if (isSword(inHand) || isAxe(inHand)) {
+            return inHand;
+        }
+
+        ItemStack firstSword = ItemStack.EMPTY;
+        ItemStack firstAxe   = ItemStack.EMPTY;
+
+        var inv = player.getInventory();
+        for (int i = 0; i < inv.size(); i++) {
+            ItemStack st = inv.getStack(i);
+            if (st.isEmpty()) continue;
+
+            if (firstSword.isEmpty() && isSword(st)) firstSword = st;
+            if (firstAxe.isEmpty()   && isAxe(st))   firstAxe   = st;
+
+            // petit early-exit si on a déjà une épée
+            if (!firstSword.isEmpty()) break;
+        }
+
+        if (!firstSword.isEmpty()) return firstSword;
+        return firstAxe; // peut être EMPTY si rien
+    }
+
+    private boolean isSword(ItemStack st) {
+        return !st.isEmpty() && st.isIn(ItemTags.SWORDS);
+    }
+
+    private boolean isAxe(ItemStack st) {
+        return !st.isEmpty() && st.isIn(ItemTags.AXES);
     }
 }

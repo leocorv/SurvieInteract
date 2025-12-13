@@ -117,7 +117,7 @@ public class SubEvent implements EventHandler {
             );
 
             stalker.setOwner(target);
-
+            stalker.copyLoadoutFrom(target);
             world.spawnEntity(stalker);
 
             String msgGlobal;

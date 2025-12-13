@@ -3,15 +3,18 @@ package org.nerix.survieinteract;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import org.nerix.survieinteract.commands.ConsentCommand;
 import org.nerix.survieinteract.commands.DesactivateTypeCommand;
@@ -74,8 +77,13 @@ public class Survieinteract implements ModInitializer {
         // commandes
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
             ConsentCommand.register(dispatcher);
-            DesactivateTypeCommand.register(dispatcher);
         });
+
+        ArgumentTypeRegistry.registerArgumentType(
+                Identifier.of("survieinteract", "event_type"),
+                DesactivateTypeCommand.EventTypeArgument.class,
+                ConstantArgumentSerializer.of(DesactivateTypeCommand.EventTypeArgument::new)
+        );
 
         // tick scheduler
         ServerTickEvents.END_SERVER_TICK.register(server -> {
