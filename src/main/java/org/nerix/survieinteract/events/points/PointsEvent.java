@@ -6,12 +6,20 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.entity.Entity;
+import java.util.EnumSet;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
+import java.util.Set;
+import net.minecraft.world.Heightmap;
 import org.nerix.survieinteract.ConfigManager;
 import org.nerix.survieinteract.Msg;
 import org.nerix.survieinteract.Survieinteract;
 import org.nerix.survieinteract.events.EventHandler;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 
@@ -36,6 +44,10 @@ public class PointsEvent implements EventHandler {
 
                 case "faites glisser !":
                     handleFaitesGlisser(viewer);
+                    break;
+
+                case "switch !":
+                    handlePermutationSauvage(viewer);
                     break;
 
                 // futur : d’autres rewards ici
@@ -82,6 +94,124 @@ public class PointsEvent implements EventHandler {
 
 
     /* =====================================================
+                  NOUVELLE LOGIQUE "Permutation sauvage"
+                  SWAP / TP LOCAL
+       ===================================================== */
+
+    private void handlePermutationSauvage(String viewer) {
+        MinecraftServer server = Survieinteract.getServer();
+        if (server == null) return;
+
+        List<ServerPlayerEntity> candidates = getCandidates();
+        if (candidates.isEmpty()) {
+            System.out.println("[SurvieInteract] 'Permutation sauvage' ignorée : aucun joueur consentant / vivant.");
+            return;
+        }
+
+        Random rand = new Random();
+
+        if (candidates.size() >= 2) {
+            // On prend deux joueurs distincts
+            ServerPlayerEntity a = candidates.get(rand.nextInt(candidates.size()));
+            ServerPlayerEntity b = a;
+
+            while (b == a && candidates.size() > 1) {
+                b = candidates.get(rand.nextInt(candidates.size()));
+            }
+
+            if (b == a) {
+                // Cas ultra rare : un seul joueur au final
+                randomTeleportNear(a, 20);
+                Msg.player(a, viewer + " t’a déstabilisé : téléportation chaotique proche de ta position.");
+                Msg.global(server, viewer + " a utilisé 'Permutation sauvage' sur " + a.getName().getString(), a);
+                return;
+            }
+
+            // Swap des positions
+            ServerWorld worldA = a.getEntityWorld();
+            ServerWorld worldB = b.getEntityWorld();
+
+            Vec3d posA = a.getEntityPos();
+            Vec3d posB = b.getEntityPos();
+
+            float yawA = a.getYaw();
+            float pitchA = a.getPitch();
+            float yawB = b.getYaw();
+            float pitchB = b.getPitch();
+
+            Set<PositionFlag> flags = EnumSet.noneOf(PositionFlag.class);
+
+            a.teleport(worldB,
+                    posB.getX(), posB.getY(), posB.getZ(),
+                    flags,
+                    yawB, pitchB,
+                    false);
+
+            b.teleport(worldA,
+                    posA.getX(), posA.getY(), posA.getZ(),
+                    flags,
+                    yawA, pitchA,
+                    false);
+
+            String nameA = a.getName().getString();
+            String nameB = b.getName().getString();
+
+            Msg.player(a, viewer + " t’a échangé de place avec " + nameB + " !");
+            Msg.player(b, viewer + " t’a échangé de place avec " + nameA + " !");
+            Msg.global(server, viewer + " a utilisé 'Permutation sauvage' : " + nameA + " ↔ " + nameB);
+
+        } else {
+            // Un seul joueur possible → TP aléatoire à proximité
+            ServerPlayerEntity target = candidates.get(0);
+            randomTeleportNear(target, 20);
+
+            Msg.player(target, viewer + " t’a téléporté aléatoirement à proximité…");
+            Msg.global(server, viewer + " a utilisé 'Permutation sauvage' sur " + target.getName().getString(), target);
+        }
+    }
+
+    private void randomTeleportNear(ServerPlayerEntity player, int radius) {
+        if (radius < 1) radius = 1;
+
+        ServerWorld world = player.getEntityWorld();
+        BlockPos base = player.getBlockPos();
+        Random rand = new Random();
+
+        for (int i = 0; i < 16; i++) {
+            int dx = rand.nextInt(-radius, radius + 1);
+            int dz = rand.nextInt(-radius, radius + 1);
+
+            BlockPos tentative = base.add(dx, 0, dz);
+
+            BlockPos top = world.getTopPosition(
+                    Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
+                    tentative
+            );
+
+            if (!world.isAir(top)) continue;
+
+            Vec3d dest = Vec3d.ofBottomCenter(top);
+            Set<PositionFlag> flags = EnumSet.noneOf(PositionFlag.class);
+
+            player.teleport(
+                    world,
+                    dest.getX(), dest.getY(), dest.getZ(),
+                    flags,
+                    player.getYaw(),
+                    player.getPitch(),
+                    false
+            );
+
+            System.out.println("[SurvieInteract] TP proche pour " + player.getName().getString() +
+                    " → " + dest.getX() + " " + dest.getY() + " " + dest.getZ());
+            return;
+        }
+
+        System.out.println("[SurvieInteract] TP proche raté : aucune position safe trouvée pour " +
+                player.getName().getString());
+    }
+
+    /* =====================================================
                      FONCTIONS UTILITAIRES
        ===================================================== */
 
@@ -110,7 +240,7 @@ public class PointsEvent implements EventHandler {
         Random rand = new Random();
         ItemStack removed = ItemStack.EMPTY;
 
-        for (int attempt = 0; attempt < 3 && (removed == ItemStack.EMPTY || removed.isEmpty()); attempt++) {
+        for (int attempt = 0; attempt < 41 && (removed == ItemStack.EMPTY || removed.isEmpty()); attempt++) {
 
             int slot = rand.nextInt(size);
             ItemStack stack = inv.getStack(slot);
@@ -146,4 +276,19 @@ public class PointsEvent implements EventHandler {
         System.out.println("[SurvieInteract] 'Faites glisser !' → Aucun slot non vide (3 tentatives)");
         return false;
     }
+
+    private List<ServerPlayerEntity> getCandidates() {
+        MinecraftServer server = Survieinteract.getServer();
+        List<ServerPlayerEntity> candidates = new ArrayList<>();
+        if (server == null) return candidates;
+
+        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            if (!ConfigManager.getConsent(p.getUuid())) continue;
+            if (ConfigManager.getLives(p.getUuid()) <= 0) continue;
+            candidates.add(p);
+        }
+
+        return candidates;
+    }
+
 }
