@@ -10,6 +10,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
+import net.minecraft.scoreboard.ScoreboardCriterion;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -18,6 +21,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import org.nerix.survieinteract.commands.ConsentCommand;
 import org.nerix.survieinteract.commands.DesactivateTypeCommand;
+import org.nerix.survieinteract.db.FollowersDb;
 import org.nerix.survieinteract.entity.ModEntities;
 import org.nerix.survieinteract.events.EventRouter;
 import org.nerix.survieinteract.events.bits.BitsEvent;
@@ -73,6 +77,7 @@ public class Survieinteract implements ModInitializer {
         // config
         ConfigManager.init();
         ModEntities.init();
+        FollowersDb.init();
 
         // commandes
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
@@ -122,6 +127,11 @@ public class Survieinteract implements ModInitializer {
                         false
                 );
             }
+            var scoreboard = server.getScoreboard();
+            var obj = scoreboard.getNullableObjective("survie_lives");
+            if (obj != null) {
+                scoreboard.getOrCreateScore(player, obj).setScore(lives);
+            }
         });
 
 
@@ -152,6 +162,20 @@ public class Survieinteract implements ModInitializer {
         // serveur prêt → lancer listener broker
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             serverInstance = server;
+
+            var scoreboard = server.getScoreboard();
+            ScoreboardObjective obj = scoreboard.getNullableObjective("survie_lives");
+            if (obj == null) {
+                obj = scoreboard.addObjective(
+                        "survie_lives",
+                        ScoreboardCriterion.DUMMY,
+                        Text.literal("Vies"),
+                        ScoreboardCriterion.RenderType.INTEGER,
+                        true,
+                        null
+                );
+            }
+            scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.LIST, obj);
 
             PayloadTypeRegistry.playS2C().register(BitsEffectPacket.ID, BitsEffectPacket.CODEC);
 

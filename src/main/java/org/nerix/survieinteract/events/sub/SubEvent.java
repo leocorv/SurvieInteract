@@ -93,10 +93,20 @@ public class SubEvent implements EventHandler {
 
         int finalTier = tier;
         server.execute(() -> {
+
+            int before = ConfigManager.getSubCounter();
+            int after = ConfigManager.incrementSubCounter(1);
+
             ServerPlayerEntity target = pickTarget(server);
             if (target == null) {
                 System.out.println("[SurvieInteract] sub/resub ignoré : aucun joueur consentant / vivant.");
                 return;
+            }
+
+            for (int c = before + 1; c <= after; c++) {
+                if (c % 2 == 0) {
+                    distributeLifeFromSubs(server, viewer);
+                }
             }
 
             ServerWorld world = target.getEntityWorld();
@@ -163,10 +173,20 @@ public class SubEvent implements EventHandler {
 
         server.execute(() -> {
 
+            int before = ConfigManager.getSubCounter();
+            int after = ConfigManager.incrementSubCounter(total);
+
             var playerList = server.getPlayerManager().getPlayerList();
             if (playerList.isEmpty()) {
                 System.out.println("[SurvieInteract] Gift ignoré : aucun joueur en ligne.");
                 return;
+            }
+
+            // Pour chaque "sub" ajouté, on regarde si on passe un multiple de 2
+            for (int c = before + 1; c <= after; c++) {
+                if (c % 2 == 0) {
+                    distributeLifeFromSubs(server, gifter);
+                }
             }
 
             List<ServerPlayerEntity> candidates = new ArrayList<>();
@@ -299,4 +319,73 @@ public class SubEvent implements EventHandler {
         // Fallback bourrin : on spawn sur le joueur si on a rien trouvé
         return center;
     }
+
+    private void distributeLifeFromSubs(MinecraftServer server, String sourceName) {
+
+        int defaultLives = ConfigManager.getDefaultLives();
+
+        List<ServerPlayerEntity> all = server.getPlayerManager().getPlayerList();
+        List<ServerPlayerEntity> candidates = new ArrayList<>();
+
+        // 1) joueurs éligibles : consent, vivant, < defaultLives
+        for (ServerPlayerEntity p : all) {
+            if (!ConfigManager.getConsent(p.getUuid())) continue;
+            int lives = ConfigManager.getLives(p.getUuid());
+            if (lives <= 0) continue;
+            if (lives >= defaultLives) continue;
+            candidates.add(p);
+        }
+
+        if (candidates.isEmpty()) {
+            System.out.println("[SurvieInteract] Distribution vie SUB: aucun joueur éligible.");
+            return;
+        }
+
+        // 2) on cherche le nombre de vies minimum parmi eux
+        int minLives = Integer.MAX_VALUE;
+        for (ServerPlayerEntity p : candidates) {
+            int l = ConfigManager.getLives(p.getUuid());
+            if (l < minLives) {
+                minLives = l;
+            }
+        }
+
+        // 3) pool = ceux qui ont ce minimum
+        List<ServerPlayerEntity> pool = new ArrayList<>();
+        for (ServerPlayerEntity p : candidates) {
+            if (ConfigManager.getLives(p.getUuid()) == minLives) {
+                pool.add(p);
+            }
+        }
+
+        if (pool.isEmpty()) {
+            System.out.println("[SurvieInteract] Distribution vie SUB: pool vide (logique cassée ?)");
+            return;
+        }
+
+        // 4) tirage au sort
+        Random rand = new Random();
+        ServerPlayerEntity chosen = pool.get(rand.nextInt(pool.size()));
+
+        int current = ConfigManager.getLives(chosen.getUuid());
+        int newLives = Math.min(current + 1, defaultLives);
+        if (newLives == current) return;
+
+        ConfigManager.setLives(chosen.getUuid(), newLives);
+
+        String name = chosen.getName().getString();
+
+        Msg.player(chosen,
+                "Grâce aux subs Twitch, tu gagnes +1 vie (" +
+                        newLives + "/" + defaultLives + ").");
+
+        Msg.global(server,
+                name + " a gagner +1 vie grâce aux subs.",
+                chosen
+        );
+
+        System.out.println("[SurvieInteract] Distribution vie SUB → " +
+                name + " : " + current + " → " + newLives);
+    }
+
 }

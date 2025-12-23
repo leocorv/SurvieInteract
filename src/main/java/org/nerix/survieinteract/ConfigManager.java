@@ -2,6 +2,8 @@ package org.nerix.survieinteract;
 
 import com.google.gson.*;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.io.Reader;
 import java.io.Writer;
@@ -52,6 +54,8 @@ public class ConfigManager {
     private static void createDefault() {
         root = new JsonObject();
         root.addProperty("default_lives", 3);
+        root.addProperty("follow_counter", 0);
+        root.addProperty("sub_counter", 0);
         root.add("players", new JsonObject());
 
         JsonObject events = new JsonObject();
@@ -123,6 +127,7 @@ public class ConfigManager {
     public static void setLives(UUID uuid, int lives) {
         getPlayerNode(uuid).addProperty("lives", lives);
         save();
+        syncScoreboardLives(uuid, lives);
     }
 
     public static void addLives(UUID uuid, int amount) {
@@ -140,4 +145,55 @@ public class ConfigManager {
     public static boolean isDead(UUID uuid) {
         return getLives(uuid) <= 0;
     }
+
+    public static int getDefaultLives() {
+        if (root.has("default_lives")) {
+            return root.get("default_lives").getAsInt();
+        }
+        return 3; // fallback
+    }
+
+    public static int getFollowCounter() {
+        if (root.has("follow_counter")) {
+            return root.get("follow_counter").getAsInt();
+        }
+        return 0;
+    }
+
+    public static int incrementFollowCounter() {
+        int current = getFollowCounter() + 1;
+        root.addProperty("follow_counter", current);
+        save();
+        return current;
+    }
+
+    public static int getSubCounter() {
+        if (root.has("sub_counter")) {
+            return root.get("sub_counter").getAsInt();
+        }
+        return 0;
+    }
+
+    public static int incrementSubCounter(int amount) {
+        int current = getSubCounter() + amount;
+        root.addProperty("sub_counter", current);
+        save();
+        return current;
+    }
+
+
+    private static void syncScoreboardLives(UUID uuid, int lives) {
+        MinecraftServer server = Survieinteract.getServer();
+        if (server == null) return;
+
+        var scoreboard = server.getScoreboard();
+        var obj = scoreboard.getNullableObjective("survie_lives");
+        if (obj == null) return;
+
+        ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+        if (player == null) return;
+
+        scoreboard.getOrCreateScore(player, obj).setScore(lives);
+    }
+
 }
