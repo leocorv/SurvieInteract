@@ -37,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -185,7 +186,7 @@ public class Survieinteract implements ModInitializer {
 
     private void startBrokerListener() {
         Thread t = new Thread(() -> {
-            try (ServerSocket ss = new ServerSocket(BROKER_PORT)) {
+            try (ServerSocket ss = new ServerSocket(BROKER_PORT, 50, InetAddress.getLoopbackAddress())) {
                 System.out.println("[SurvieInteract] En écoute sur port " + BROKER_PORT);
 
                 while (true) {
