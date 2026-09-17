@@ -53,6 +53,22 @@ Directory
 *.tar.gz
 *.rar
 
+# Runtime SurvieInteract
+survieinteract.json
+twitch_followers.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
 # EXCEPT: we KEEP the gradle wrapper properties file but NOT the jar
 # gradle/wrapper/gradle-wrapper.properties
 # !gradle/wrapper/gradle-wrapper.properties
